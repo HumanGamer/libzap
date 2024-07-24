@@ -22,19 +22,19 @@ struct ZAPFILE_HEADER
     unsigned int height;
 };
 
-bool load_zap_file(const char* filename, unsigned char** pOut, int* pOutSize)
+bool load_zap_file(const char* filename, unsigned char** pOut, size_t* pOutSize, int* pOutWidth, int* pOutHeight)
 {
     FILE* pFile = fopen(filename, "rb");
     if (pFile)
     {
         fseek(pFile, 0, SEEK_END);
-        int size = ftell(pFile);
+        size_t size = ftell(pFile);
         fseek(pFile, 0, SEEK_SET);
         auto* pData = new unsigned char[size];
         fread(pData, 1, size, pFile);
         fclose(pFile);
 
-        bool result = load_zap(pData, pOut, pOutSize);
+        bool result = load_zap(pData, pOut, pOutSize, pOutWidth, pOutHeight);
 
         delete[] pData;
 
@@ -48,7 +48,7 @@ bool load_zap_file(const char* filename, unsigned char** pOut, int* pOutSize)
     }
 }
 
-bool load_zap(const unsigned char* pData, unsigned char** pOut, int* pOutSize)
+bool load_zap(const unsigned char* pData, unsigned char** pOut, size_t* pOutSize, int* pOutWidth, int* pOutHeight)
 {
     auto* pHeader = (ZAPFILE_HEADER*)pData;
 
@@ -97,6 +97,8 @@ bool load_zap(const unsigned char* pData, unsigned char** pOut, int* pOutSize)
 
     *pOutSize = width * height * 4;
     *pOut = new unsigned char[*pOutSize];
+    *pOutWidth = width;
+    *pOutHeight = height;
 
     memcpy(*pOut, pixelsRGB, *pOutSize);
 
