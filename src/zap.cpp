@@ -75,8 +75,8 @@ bool load_zap(const unsigned char* pData, unsigned char** pOut, size_t* pOutSize
     int image1_width, image1_height, image1_channels;
     int image2_width, image2_height, image2_channels;
 
-    unsigned char* pImage1 = stbi_load_from_memory(pData + image1_offset, image1_size, &image1_width, &image1_height, &image1_channels, 0);
-    unsigned char* pImage2 = stbi_load_from_memory(pData + image2_offset, image2_size, &image2_width, &image2_height, &image2_channels, 0);
+    unsigned char* pImage1 = stbi_load_from_memory(pData + image1_offset, image1_size, &image1_width, &image1_height, &image1_channels, 4);
+    unsigned char* pImage2 = stbi_load_from_memory(pData + image2_offset, image2_size, &image2_width, &image2_height, &image2_channels, 1);
 
     unsigned char* pixelsAlpha = pImage2;
     unsigned char* pixelsRGB = pImage1;
@@ -90,7 +90,7 @@ bool load_zap(const unsigned char* pData, unsigned char** pOut, size_t* pOutSize
             for (int i = 3; i < bitsPerRow; i += 4)
                 pixelsRGB[i] = pixelsAlpha[i >> 2];
             pixelsAlpha += width;
-            pixelsRGB += width;
+            pixelsRGB += bitsPerRow;
             --y;
         } while (y);
     }
@@ -100,7 +100,7 @@ bool load_zap(const unsigned char* pData, unsigned char** pOut, size_t* pOutSize
     *pOutWidth = width;
     *pOutHeight = height;
 
-    memcpy(*pOut, pixelsRGB, *pOutSize);
+    memcpy(*pOut, pImage1, *pOutSize);
 
     return true;
 }
