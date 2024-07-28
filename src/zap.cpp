@@ -102,5 +102,13 @@ bool load_zap(const unsigned char* pData, unsigned char** pOut, size_t* pOutSize
 
     memcpy(*pOut, pImage1, *pOutSize);
 
+    stbi_image_free(pImage1);
+    stbi_image_free(pImage2);
+
     return true;
+}
+
+void free_zap(const unsigned char* pData)
+{
+    delete[] pData;
 }
