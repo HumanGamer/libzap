@@ -11,9 +11,9 @@ target_compile_definitions(libzap PRIVATE CRT_SECURE_NO_WARNINGS)
 
 target_sources(libzap
     PRIVATE
-        src/zap.cpp
+        src/libzap.cpp
         vendor/stb_image.cpp
         vendor/stb_image.h
     PUBLIC
-        include/zap.h
+        include/libzap.h
 )

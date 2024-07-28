@@ -1,9 +1,9 @@
-#include "zap.h"
+#include "libzap.h"
 #include <cstdio>
 #include <stb_image.h>
 #include <cstring>
 
-enum class ZAP_IMAGE_FORMAT : unsigned int
+enum class INTERNAL_ZAP_IMAGE_FORMAT : unsigned int
 {
     JPG = 10,
     JTIF = 11,
@@ -14,15 +14,15 @@ struct ZAPFILE_HEADER
 {
     unsigned int header_size;
     unsigned int file_version;
-    ZAP_IMAGE_FORMAT image1_format;
-    ZAP_IMAGE_FORMAT image2_format;
+    INTERNAL_ZAP_IMAGE_FORMAT image1_format;
+    INTERNAL_ZAP_IMAGE_FORMAT image2_format;
     unsigned int image1_size;
     unsigned int image2_size;
     unsigned int width;
     unsigned int height;
 };
 
-bool load_zap_file(const char* filename, unsigned char** pOut, size_t* pOutSize, int* pOutWidth, int* pOutHeight)
+zap_error_t zap_load(const char* filename, zap_uint_t colorFormat, zap_byte_t** pOut, zap_size_t* pOutSize, zap_int_t* pOutWidth, zap_int_t* pOutHeight)
 {
     FILE* pFile = fopen(filename, "rb");
     if (pFile)
@@ -34,7 +34,7 @@ bool load_zap_file(const char* filename, unsigned char** pOut, size_t* pOutSize,
         fread(pData, 1, size, pFile);
         fclose(pFile);
 
-        bool result = load_zap(pData, pOut, pOutSize, pOutWidth, pOutHeight);
+        zap_error_t result = zap_load_memory(pData, colorFormat, pOut, pOutSize, pOutWidth, pOutHeight);
 
         delete[] pData;
 
@@ -44,30 +44,33 @@ bool load_zap_file(const char* filename, unsigned char** pOut, size_t* pOutSize,
     {
         *pOutSize = 0;
 
-        return false;
+        return ZAP_ERROR_FILE_FAILED_TO_OPEN;
     }
 }
 
-bool load_zap(const unsigned char* pData, unsigned char** pOut, size_t* pOutSize, int* pOutWidth, int* pOutHeight)
+zap_error_t zap_load_memory(const unsigned char* pData, zap_uint_t colorFormat, zap_byte_t** pOut, zap_size_t* pOutSize, zap_int_t* pOutWidth, zap_int_t* pOutHeight)
 {
+    if (colorFormat != ZAP_COLOR_FORMAT_RGBA32)
+        return ZAP_ERROR_INVALID_ARGUMENT;
+
     auto* pHeader = (ZAPFILE_HEADER*)pData;
 
     if (pHeader->header_size != sizeof(ZAPFILE_HEADER))
-        return false;
+        return ZAP_ERROR_INVALID_FILE;
 
     if (pHeader->file_version != 2)
-        return false;
+        return ZAP_ERROR_INVALID_VERSION;
 
-    if (pHeader->image1_format != ZAP_IMAGE_FORMAT::PNG &&
-        pHeader->image1_format != ZAP_IMAGE_FORMAT::JPG &&
-        pHeader->image1_format != ZAP_IMAGE_FORMAT::JTIF)
-        return false;
+    if (pHeader->image1_format != INTERNAL_ZAP_IMAGE_FORMAT::PNG &&
+        pHeader->image1_format != INTERNAL_ZAP_IMAGE_FORMAT::JPG &&
+        pHeader->image1_format != INTERNAL_ZAP_IMAGE_FORMAT::JTIF)
+        return ZAP_ERROR_INVALID_FORMAT;
 
-    int width = pHeader->width;
-    int height = pHeader->height;
+    int width = (int)pHeader->width;
+    int height = (int)pHeader->height;
 
-    int image1_size = pHeader->image1_size;
-    int image2_size = pHeader->image2_size;
+    int image1_size = (int)pHeader->image1_size;
+    int image2_size = (int)pHeader->image2_size;
 
     int image1_offset = sizeof(ZAPFILE_HEADER);
     int image2_offset = image1_offset + image1_size;
@@ -96,7 +99,7 @@ bool load_zap(const unsigned char* pData, unsigned char** pOut, size_t* pOutSize
     }
 
     *pOutSize = width * height * 4;
-    *pOut = new unsigned char[*pOutSize];
+    *pOut = new zap_byte_t[*pOutSize];
     *pOutWidth = width;
     *pOutHeight = height;
 
@@ -105,10 +108,22 @@ bool load_zap(const unsigned char* pData, unsigned char** pOut, size_t* pOutSize
     stbi_image_free(pImage1);
     stbi_image_free(pImage2);
 
-    return true;
+    return ZAP_ERROR_NONE;
 }
 
-void free_zap(const unsigned char* pData)
+zap_error_t zap_free(const zap_byte_t* pData)
 {
     delete[] pData;
+
+    return ZAP_ERROR_NONE;
+}
+
+zap_error_t zap_save(const char* filename, const zap_byte_t* pData, zap_size_t dataSize, zap_int_t width, zap_int_t height, zap_uint_t colorFormat, zap_uint_t format)
+{
+    return ZAP_ERROR_NOT_IMPLEMENTED;
+}
+
+zap_error_t zap_save_memory(zap_byte_t** pOut, zap_size_t* pOutSize, zap_int_t width, zap_int_t height, zap_uint_t colorFormat, zap_uint_t format)
+{
+    return ZAP_ERROR_NOT_IMPLEMENTED;
 }
