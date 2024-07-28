@@ -51,7 +51,7 @@ enum ZAP_COLOR_FORMAT
 /// \param pOutWidth A pointer to the output image width
 /// \param pOutHeight A pointer to the output image height
 /// \return 0 on success, non-zero on failure
-LIBZAP_API zap_error_t LIBZAP_CALL zap_load(const char* filename, zap_uint_t colorFormat, zap_byte_t** pOut, zap_size_t* pOutSize, const zap_int_t* pOutWidth, const zap_int_t* pOutHeight);
+LIBZAP_API zap_error_t LIBZAP_CALL zap_load(const char* filename, zap_uint_t colorFormat, zap_byte_t** pOut, zap_size_t* pOutSize, zap_int_t* pOutWidth, zap_int_t* pOutHeight);
 
 /// Load a ZAP file from memory
 /// \param pData The data to load
