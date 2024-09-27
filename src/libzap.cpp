@@ -1,7 +1,8 @@
 #include "libzap.h"
 #include <cstdio>
-#include <stb_image.h>
+#include <M4Image/M4Image.h>
 #include <cstring>
+#include <cstdlib>
 
 enum class INTERNAL_ZAP_IMAGE_FORMAT : unsigned int
 {
@@ -22,7 +23,10 @@ struct ZAPFILE_HEADER
     unsigned int height;
 };
 
-zap_error_t zap_load(const char* filename, zap_uint_t colorFormat, zap_byte_t** pOut, zap_size_t* pOutSize, zap_int_t* pOutWidth, zap_int_t* pOutHeight)
+static zap_malloc_proc mallocProc = malloc;
+static zap_free_proc freeProc = free;
+
+zap_error_t internal_zap_load(const char* filename, zap_uint_t colorFormat, zap_byte_t** pOut, zap_size_t* pOutSize, zap_int_t* pOutWidth, zap_int_t* pOutHeight, bool resize)
 {
     FILE* pFile = fopen(filename, "rb");
     if (pFile)
@@ -30,13 +34,20 @@ zap_error_t zap_load(const char* filename, zap_uint_t colorFormat, zap_byte_t** 
         fseek(pFile, 0, SEEK_END);
         size_t size = ftell(pFile);
         fseek(pFile, 0, SEEK_SET);
-        auto* pData = new unsigned char[size];
+        auto* pData = (unsigned char*)mallocProc(size);
+
+        if (!pData) {
+            return ZAP_ERROR_OUT_OF_MEMORY;
+        }
+
         fread(pData, 1, size, pFile);
         fclose(pFile);
 
-        zap_error_t result = zap_load_memory(pData, colorFormat, pOut, pOutSize, pOutWidth, pOutHeight);
+        zap_error_t result = resize
+            ? zap_resize_memory(pData, colorFormat, pOut, pOutSize, *pOutWidth, *pOutHeight)
+            : zap_load_memory(pData, colorFormat, pOut, pOutSize, pOutWidth, pOutHeight);
 
-        delete[] pData;
+        freeProc(pData);
 
         return result;
     }
@@ -48,9 +59,19 @@ zap_error_t zap_load(const char* filename, zap_uint_t colorFormat, zap_byte_t** 
     }
 }
 
-zap_error_t zap_load_memory(const unsigned char* pData, zap_uint_t colorFormat, zap_byte_t** pOut, zap_size_t* pOutSize, zap_int_t* pOutWidth, zap_int_t* pOutHeight)
+zap_error_t zap_load(const char* filename, zap_uint_t colorFormat, zap_byte_t** pOut, zap_size_t* pOutSize, zap_int_t* pOutWidth, zap_int_t* pOutHeight)
 {
-    if (colorFormat != ZAP_COLOR_FORMAT_RGBA32)
+    return internal_zap_load(filename, colorFormat, pOut, pOutSize, pOutWidth, pOutHeight, false);
+}
+
+zap_error_t zap_resize(const char* filename, zap_uint_t colorFormat, zap_byte_t** pOut, zap_size_t* pOutSize, zap_int_t width, zap_int_t height)
+{
+    return internal_zap_load(filename, colorFormat, pOut, pOutSize, &width, &height, true);
+}
+
+zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colorFormat, zap_byte_t** pOut, zap_size_t* pOutSize, zap_int_t* pOutWidth, zap_int_t* pOutHeight, bool resize)
+{
+    if (colorFormat < ZAP_COLOR_FORMAT_RGBA32 || colorFormat > ZAP_COLOR_FORMAT_BGRX32)
         return ZAP_ERROR_INVALID_ARGUMENT;
 
     auto* pHeader = (ZAPFILE_HEADER*)pData;
@@ -66,8 +87,11 @@ zap_error_t zap_load_memory(const unsigned char* pData, zap_uint_t colorFormat, 
         pHeader->image1_format != INTERNAL_ZAP_IMAGE_FORMAT::JTIF)
         return ZAP_ERROR_INVALID_FORMAT;
 
-    int width = (int)pHeader->width;
-    int height = (int)pHeader->height;
+    const char* extension = "jpg";
+
+    if (pHeader->image1_format == INTERNAL_ZAP_IMAGE_FORMAT::PNG) {
+        extension = "png";
+    }
 
     int image1_size = (int)pHeader->image1_size;
     int image2_size = (int)pHeader->image2_size;
@@ -75,14 +99,41 @@ zap_error_t zap_load_memory(const unsigned char* pData, zap_uint_t colorFormat, 
     int image1_offset = sizeof(ZAPFILE_HEADER);
     int image2_offset = image1_offset + image1_size;
 
-    int image1_width, image1_height, image1_channels;
-    int image2_width, image2_height, image2_channels;
+    zap_int_t &image1_width = *pOutWidth;
+    zap_int_t &image1_height = *pOutHeight;
 
-    unsigned char* pImage1 = stbi_load_from_memory(pData + image1_offset, image1_size, &image1_width, &image1_height, &image1_channels, 4);
-    unsigned char* pImage2 = stbi_load_from_memory(pData + image2_offset, image2_size, &image2_width, &image2_height, &image2_channels, 1);
+    size_t image1_stride, image2_stride;
 
-    unsigned char* pixelsAlpha = pImage2;
-    unsigned char* pixelsRGB = pImage1;
+    *pOut = resize
+    ? M4Image::load(extension, pData + image1_offset, image1_size, image1_width, image1_height, image1_stride, (M4Image::COLOR_FORMAT)colorFormat)
+    : M4Image::resize(extension, pData + image1_offset, image1_size, image1_width, image1_height, image1_stride, (M4Image::COLOR_FORMAT)colorFormat);
+
+    int width, height;
+
+    if (resize) {
+        width = image1_width;
+        height = image1_height;
+    } else {
+        width = (int)pHeader->width;
+        height = (int)pHeader->height;
+
+        if (width != image1_width || height != image1_height) {
+            return ZAP_ERROR_INVALID_FILE;
+        }
+    }
+
+    zap_int_t image2_width = width;
+    zap_int_t image2_height = height;
+
+    unsigned char* pixelsRGB = *pOut;
+
+    unsigned char* pixelsAlpha = resize
+    ? M4Image::load(extension, pData + image2_offset, image2_size, image2_width, image2_height, image2_stride, M4Image::COLOR_FORMAT::L8)
+    : M4Image::resize(extension, pData + image2_offset, image2_size, image2_width, image2_height, image2_stride, M4Image::COLOR_FORMAT::L8);
+
+    if (image1_width != image2_width || image1_height != image2_height) {
+        return ZAP_ERROR_INVALID_FILE;
+    }
 
     if (height)
     {
@@ -98,23 +149,28 @@ zap_error_t zap_load_memory(const unsigned char* pData, zap_uint_t colorFormat, 
         } while (y);
     }
 
-    *pOutSize = width * height * 4;
-    *pOut = new zap_byte_t[*pOutSize];
-    *pOutWidth = width;
-    *pOutHeight = height;
+    *pOutSize = (size_t)width * (size_t)height * 4;
 
-    memcpy(*pOut, pImage1, *pOutSize);
-
-    stbi_image_free(pImage1);
-    stbi_image_free(pImage2);
+    freeProc(pixelsAlpha);
 
     return ZAP_ERROR_NONE;
 }
 
-zap_error_t zap_free(const zap_byte_t* pData)
+zap_error_t zap_load_memory(const unsigned char* pData, zap_uint_t colorFormat, zap_byte_t** pOut, zap_size_t* pOutSize, zap_int_t* pOutWidth, zap_int_t* pOutHeight)
 {
-    delete[] pData;
+    return internal_zap_load_memory(pData, colorFormat, pOut, pOutSize, pOutWidth, pOutHeight, false);
+}
 
+zap_error_t zap_resize_memory(const unsigned char* pData, zap_uint_t colorFormat, zap_byte_t** pOut, zap_size_t* pOutSize, zap_int_t width, zap_int_t height)
+{
+    return internal_zap_load_memory(pData, colorFormat, pOut, pOutSize, &width, &height, true);
+}
+
+zap_error_t zap_set_allocator(zap_malloc_proc _mallocProc, zap_free_proc _freeProc)
+{
+    mallocProc = _mallocProc;
+    freeProc = _freeProc;
+    M4Image::setAllocator(mallocProc, freeProc);
     return ZAP_ERROR_NONE;
 }
 
