@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include "libzap.h"
 #include <cstdio>
 #include <M4Image/M4Image.h>
@@ -99,49 +100,28 @@ zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colo
     int image1_offset = sizeof(ZAPFILE_HEADER);
     int image2_offset = image1_offset + image1_size;
 
-    zap_int_t &image1_width = *pOutWidth;
-    zap_int_t &image1_height = *pOutHeight;
+    zap_int_t &width = *pOutWidth;
+    zap_int_t &height = *pOutHeight;
+
+    if (!resize) {
+        width = (zap_int_t)pHeader->width;
+        height = (zap_int_t)pHeader->height;
+    }
 
     size_t image1_stride, image2_stride;
 
-    *pOut = resize
-    ? M4Image::load(extension, pData + image1_offset, image1_size, image1_width, image1_height, image1_stride, (M4Image::COLOR_FORMAT)colorFormat)
-    : M4Image::resize(extension, pData + image1_offset, image1_size, image1_width, image1_height, image1_stride, (M4Image::COLOR_FORMAT)colorFormat);
-
-    int width, height;
-
-    if (resize) {
-        width = image1_width;
-        height = image1_height;
-    } else {
-        width = (int)pHeader->width;
-        height = (int)pHeader->height;
-
-        if (width != image1_width || height != image1_height) {
-            return ZAP_ERROR_INVALID_FILE;
-        }
-    }
-
-    zap_int_t image2_width = width;
-    zap_int_t image2_height = height;
+    *pOut = M4Image::resize(extension, pData + image1_offset, image1_size, width, height, image1_stride, (M4Image::COLOR_FORMAT)colorFormat);
 
     unsigned char* pixelsRGB = *pOut;
-
-    unsigned char* pixelsAlpha = resize
-    ? M4Image::load(extension, pData + image2_offset, image2_size, image2_width, image2_height, image2_stride, M4Image::COLOR_FORMAT::L8)
-    : M4Image::resize(extension, pData + image2_offset, image2_size, image2_width, image2_height, image2_stride, M4Image::COLOR_FORMAT::L8);
-
-    if (image1_width != image2_width || image1_height != image2_height) {
-        return ZAP_ERROR_INVALID_FILE;
-    }
+    unsigned char* pixelsAlpha = M4Image::resize(extension, pData + image2_offset, image2_size, width, height, image2_stride, M4Image::COLOR_FORMAT::L8);
 
     if (height)
     {
-        int bitsPerRow = 4 * width;
-        int y = height;
+        zap_int_t bitsPerRow = 4 * width;
+        zap_int_t y = height;
         do
         {
-            for (int i = 3; i < bitsPerRow; i += 4)
+            for (zap_int_t i = 3; i < bitsPerRow; i += 4)
                 pixelsRGB[i] = pixelsAlpha[i >> 2];
             pixelsAlpha += width;
             pixelsRGB += bitsPerRow;
