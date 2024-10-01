@@ -113,7 +113,17 @@ zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colo
     *pOut = M4Image::resize(extension, pData + image1_offset, image1_size, width, height, image1_stride, (M4Image::COLOR_FORMAT)colorFormat);
 
     unsigned char* pixelsRGB = *pOut;
+
+    if (!pixelsRGB) {
+        return ZAP_ERROR_OUT_OF_MEMORY;
+    }
+
     unsigned char* pixelsAlpha = M4Image::resize(extension, pData + image2_offset, image2_size, width, height, image2_stride, M4Image::COLOR_FORMAT::L8);
+
+    if (!pixelsAlpha) {
+        freeProc(pixelsRGB);
+        return ZAP_ERROR_OUT_OF_MEMORY;
+    }
 
     if (height)
     {
