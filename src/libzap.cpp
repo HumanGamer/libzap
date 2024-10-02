@@ -88,10 +88,17 @@ zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colo
         pHeader->image1_format != INTERNAL_ZAP_IMAGE_FORMAT::JTIF)
         return ZAP_ERROR_INVALID_FORMAT;
 
-    const char* extension = "jpg";
+    const char* extension;
 
-    if (pHeader->image1_format == INTERNAL_ZAP_IMAGE_FORMAT::PNG) {
+    switch (pHeader->image1_format) {
+        case INTERNAL_ZAP_IMAGE_FORMAT::PNG:
         extension = "png";
+        break;
+        case INTERNAL_ZAP_IMAGE_FORMAT::JPG:
+        extension = "jpg";
+        break;
+        case INTERNAL_ZAP_IMAGE_FORMAT::JTIF:
+        extension = "jtif";
     }
 
     int image1_size = (int)pHeader->image1_size;
