@@ -160,6 +160,12 @@ zap_error_t zap_resize_memory(const unsigned char* pData, zap_uint_t colorFormat
     return internal_zap_load_memory(pData, colorFormat, pOut, pOutSize, &width, &height, true);
 }
 
+zap_error_t zap_free(zap_byte_t* pData) {
+    freeProc(pData);
+
+    return ZAP_ERROR_NONE;
+}
+
 zap_error_t zap_set_allocator(zap_malloc_proc _mallocProc, zap_free_proc _freeProc)
 {
     mallocProc = _mallocProc;
