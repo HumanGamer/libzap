@@ -98,11 +98,8 @@ zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colo
         extension = "jtif";
     }
 
-    int image1_size = (int)pHeader->image1_size;
-    int image2_size = (int)pHeader->image2_size;
-
     int image1_offset = sizeof(ZAPFILE_HEADER);
-    int image2_offset = image1_offset + image1_size;
+    int image1_size = (int)pHeader->image1_size;
 
     zap_int_t &width = *pOutWidth;
     zap_int_t &height = *pOutHeight;
@@ -112,7 +109,7 @@ zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colo
         height = (zap_int_t)pHeader->height;
     }
 
-    size_t image1_stride, image2_stride;
+    size_t image1_stride;
 
     *pOut = M4Image::resize(extension, pData + image1_offset, image1_size, width, height, image1_stride, (M4Image::COLOR_FORMAT)colorFormat);
 
@@ -122,34 +119,40 @@ zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colo
         return ZAP_ERROR_OUT_OF_MEMORY;
     }
 
-    unsigned char* pixelsAlpha = M4Image::resize(extension, pData + image2_offset, image2_size, width, height, image2_stride, M4Image::COLOR_FORMAT::L8);
+    if (colorFormat == ZAP_COLOR_FORMAT_RGBA32 ||
+        colorFormat == ZAP_COLOR_FORMAT_BGRA32)
+    {
+        int image2_offset = image1_offset + image1_size;
+        int image2_size = (int)pHeader->image2_size;
+        size_t image2_stride;
 
-    if (!pixelsAlpha) {
-        M4Image::free(pixelRGB);
-        return ZAP_ERROR_OUT_OF_MEMORY;
-    }
+        unsigned char* pixelsAlpha = M4Image::resize(extension, pData + image2_offset, image2_size, width, height, image2_stride, M4Image::COLOR_FORMAT::L8);
 
-    if (colorFormat == ZAP_COLOR_FORMAT_RGBA32 || colorFormat == ZAP_COLOR_FORMAT_BGRA32) {
-        unsigned char* pixelAlpha = pixelsAlpha;
+        if (!pixelsAlpha) {
+            M4Image::free(pixelRGB);
+            return ZAP_ERROR_OUT_OF_MEMORY;
+        }
 
         if (height)
         {
-            zap_int_t bitsPerRow = 4 * width;
+            unsigned char* pixelAlpha = pixelsAlpha;
+
+            zap_int_t stride = 4 * width;
             zap_int_t y = height;
             do
             {
-                for (zap_int_t i = 3; i < bitsPerRow; i += 4)
+                for (zap_int_t i = 3; i < stride; i += 4)
                     pixelRGB[i] = pixelAlpha[i >> 2];
                 pixelAlpha += width;
-                pixelRGB += bitsPerRow;
+                pixelRGB += stride;
                 --y;
             } while (y);
         }
+
+        M4Image::free(pixelsAlpha);
     }
 
     *pOutSize = (size_t)width * (size_t)height * 4;
-
-    M4Image::free(pixelsAlpha);
 
     return ZAP_ERROR_NONE;
 }
