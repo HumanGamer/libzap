@@ -1,4 +1,3 @@
-#define _CRT_SECURE_NO_WARNINGS
 #include "libzap.h"
 #include <cstdio>
 #include <M4Image/M4Image.h>
