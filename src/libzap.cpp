@@ -24,9 +24,6 @@ struct ZAPFILE_HEADER
     unsigned int height;
 };
 
-static zap_malloc_proc mallocProc = malloc;
-static zap_free_proc freeProc = free;
-
 zap_error_t internal_zap_load(const char* filename, zap_uint_t colorFormat, zap_byte_t** pOut, zap_size_t* pOutSize, zap_int_t* pOutWidth, zap_int_t* pOutHeight, bool resize)
 {
     FILE* pFile = fopen(filename, "rb");
@@ -35,7 +32,7 @@ zap_error_t internal_zap_load(const char* filename, zap_uint_t colorFormat, zap_
         fseek(pFile, 0, SEEK_END);
         size_t size = ftell(pFile);
         fseek(pFile, 0, SEEK_SET);
-        auto* pData = (unsigned char*)mallocProc(size);
+        auto* pData = (unsigned char*)M4Image::malloc(size);
 
         if (!pData) {
             return ZAP_ERROR_OUT_OF_MEMORY;
@@ -48,7 +45,7 @@ zap_error_t internal_zap_load(const char* filename, zap_uint_t colorFormat, zap_
             ? zap_resize_memory(pData, colorFormat, pOut, pOutSize, *pOutWidth, *pOutHeight)
             : zap_load_memory(pData, colorFormat, pOut, pOutSize, pOutWidth, pOutHeight);
 
-        freeProc(pData);
+        M4Image::free(pData);
 
         return result;
     }
@@ -168,15 +165,13 @@ zap_error_t zap_resize_memory(const unsigned char* pData, zap_uint_t colorFormat
 }
 
 zap_error_t zap_free(zap_byte_t* pData) {
-    freeProc(pData);
+    M4Image::free(pData);
 
     return ZAP_ERROR_NONE;
 }
 
-zap_error_t zap_set_allocator(zap_malloc_proc _mallocProc, zap_free_proc _freeProc)
+zap_error_t zap_set_allocator(zap_malloc_proc mallocProc, zap_free_proc freeProc)
 {
-    mallocProc = _mallocProc;
-    freeProc = _freeProc;
     M4Image::setAllocator(mallocProc, freeProc);
     return ZAP_ERROR_NONE;
 }
