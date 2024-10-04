@@ -118,8 +118,8 @@ zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colo
         return ZAP_ERROR_OUT_OF_MEMORY;
     }
 
-    if (colorFormat == ZAP_COLOR_FORMAT_RGBA32 ||
-        colorFormat == ZAP_COLOR_FORMAT_BGRA32)
+    // if colour format has alpha
+    if (!(colorFormat & 1))
     {
         int image2_offset = image1_offset + image1_size;
         int image2_size = (int)pHeader->image2_size;
