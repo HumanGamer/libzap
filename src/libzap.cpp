@@ -113,15 +113,13 @@ zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colo
         height = (zap_int_t)pHeader->height;
     }
 
-    zap_int_t stride = 4 * width;
-
     *pOut = M4Image::load(
         extension,
         pData + image1_offset,
         image1_size,
         width,
         height,
-        stride,
+        0,
         (M4Image::COLOR_FORMAT)colorFormat
     );
 
@@ -150,7 +148,7 @@ zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colo
             image2_size,
             width,
             height,
-            stride,
+            0,
             M4Image::COLOR_FORMAT::L8
         );
 
@@ -163,6 +161,7 @@ zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colo
         {
             unsigned char* pixelAlpha = pixelsAlpha;
 
+            zap_int_t stride = 4 * width;
             zap_int_t y = height;
             do
             {
