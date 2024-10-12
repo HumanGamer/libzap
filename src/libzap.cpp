@@ -66,6 +66,21 @@ zap_error_t zap_resize(const char* filename, zap_uint_t colorFormat, zap_byte_t*
     return internal_zap_load(filename, colorFormat, pOut, pOutSize, &width, &height, true);
 }
 
+zap_error_t internal_zap_get_extension(INTERNAL_ZAP_IMAGE_FORMAT imageFormat, const char* &extension) {
+    switch (imageFormat) {
+        case INTERNAL_ZAP_IMAGE_FORMAT::PNG:
+        extension = "png";
+        return ZAP_ERROR_NONE;
+        case INTERNAL_ZAP_IMAGE_FORMAT::JPG:
+        extension = "jpg";
+        return ZAP_ERROR_NONE;
+        case INTERNAL_ZAP_IMAGE_FORMAT::JTIF:
+        extension = "jtif";
+        return ZAP_ERROR_NONE;
+    }
+    return ZAP_ERROR_INVALID_FORMAT;
+}
+
 zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colorFormat, zap_byte_t** pOut, zap_size_t* pOutSize, zap_int_t* pOutWidth, zap_int_t* pOutHeight, bool resize)
 {
     if (colorFormat < ZAP_COLOR_FORMAT_RGBA32 || colorFormat > ZAP_COLOR_FORMAT_BGRX32)
@@ -79,22 +94,12 @@ zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colo
     if (pHeader->file_version != 2)
         return ZAP_ERROR_INVALID_VERSION;
 
-    if (pHeader->image1_format != INTERNAL_ZAP_IMAGE_FORMAT::PNG &&
-        pHeader->image1_format != INTERNAL_ZAP_IMAGE_FORMAT::JPG &&
-        pHeader->image1_format != INTERNAL_ZAP_IMAGE_FORMAT::JTIF)
-        return ZAP_ERROR_INVALID_FORMAT;
-
     const char* extension;
 
-    switch (pHeader->image1_format) {
-        case INTERNAL_ZAP_IMAGE_FORMAT::PNG:
-        extension = "png";
-        break;
-        case INTERNAL_ZAP_IMAGE_FORMAT::JPG:
-        extension = "jpg";
-        break;
-        case INTERNAL_ZAP_IMAGE_FORMAT::JTIF:
-        extension = "jtif";
+    zap_error_t err = internal_zap_get_extension(pHeader->image1_format, extension);
+
+    if (err != ZAP_ERROR_NONE) {
+        return err;
     }
 
     int image1_offset = sizeof(ZAPFILE_HEADER);
@@ -108,9 +113,17 @@ zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colo
         height = (zap_int_t)pHeader->height;
     }
 
-    size_t image1_stride;
+    zap_int_t stride = 4 * width;
 
-    *pOut = M4Image::resize(extension, pData + image1_offset, image1_size, width, height, image1_stride, (M4Image::COLOR_FORMAT)colorFormat);
+    *pOut = M4Image::load(
+        extension,
+        pData + image1_offset,
+        image1_size,
+        width,
+        height,
+        stride,
+        (M4Image::COLOR_FORMAT)colorFormat
+    );
 
     unsigned char* pixelRGB = *pOut;
 
@@ -121,11 +134,25 @@ zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colo
     // if colour format has alpha
     if (!(colorFormat & 1))
     {
+        err = internal_zap_get_extension(pHeader->image2_format, extension);
+
+        if (err != ZAP_ERROR_NONE) {
+            return err;
+        }
+
         int image2_offset = image1_offset + image1_size;
         int image2_size = (int)pHeader->image2_size;
         size_t image2_stride;
 
-        unsigned char* pixelsAlpha = M4Image::resize(extension, pData + image2_offset, image2_size, width, height, image2_stride, M4Image::COLOR_FORMAT::L8);
+        unsigned char* pixelsAlpha = M4Image::load(
+            extension,
+            pData + image2_offset,
+            image2_size,
+            width,
+            height,
+            stride,
+            M4Image::COLOR_FORMAT::L8
+        );
 
         if (!pixelsAlpha) {
             M4Image::free(pixelRGB);
@@ -136,7 +163,6 @@ zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colo
         {
             unsigned char* pixelAlpha = pixelsAlpha;
 
-            zap_int_t stride = 4 * width;
             zap_int_t y = height;
             do
             {
@@ -168,6 +194,29 @@ zap_error_t zap_resize_memory(const unsigned char* pData, zap_uint_t colorFormat
 
 zap_error_t zap_free(zap_byte_t* pData) {
     M4Image::free(pData);
+
+    return ZAP_ERROR_NONE;
+}
+
+zap_error_t zap_get_info(const unsigned char* pData, zap_int_t* pOutWidth, zap_int_t* pOutHeight) {
+    auto* pHeader = (ZAPFILE_HEADER*)pData;
+
+    if (pHeader->header_size != sizeof(ZAPFILE_HEADER))
+        return ZAP_ERROR_INVALID_FILE;
+
+    if (pHeader->file_version != 2)
+        return ZAP_ERROR_INVALID_VERSION;
+
+    if (pHeader->image1_format != INTERNAL_ZAP_IMAGE_FORMAT::PNG &&
+        pHeader->image1_format != INTERNAL_ZAP_IMAGE_FORMAT::JPG &&
+        pHeader->image1_format != INTERNAL_ZAP_IMAGE_FORMAT::JTIF)
+        return ZAP_ERROR_INVALID_FORMAT;
+
+    if (pOutWidth)
+        *pOutWidth = (zap_int_t)pHeader->width;
+
+    if (pOutHeight)
+        *pOutHeight = (zap_int_t)pHeader->height;
 
     return ZAP_ERROR_NONE;
 }
