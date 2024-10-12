@@ -69,13 +69,13 @@ zap_error_t zap_resize(const char* filename, zap_uint_t colorFormat, zap_byte_t*
 zap_error_t internal_zap_get_extension(INTERNAL_ZAP_IMAGE_FORMAT imageFormat, const char* &extension) {
     switch (imageFormat) {
         case INTERNAL_ZAP_IMAGE_FORMAT::PNG:
-        extension = "png";
+        extension = ".png";
         return ZAP_ERROR_NONE;
         case INTERNAL_ZAP_IMAGE_FORMAT::JPG:
-        extension = "jpg";
+        extension = ".jpg";
         return ZAP_ERROR_NONE;
         case INTERNAL_ZAP_IMAGE_FORMAT::JTIF:
-        extension = "jtif";
+        extension = ".jtif";
         return ZAP_ERROR_NONE;
     }
     return ZAP_ERROR_INVALID_FORMAT;
