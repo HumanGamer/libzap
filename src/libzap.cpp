@@ -128,10 +128,10 @@ zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colo
         pExtension1,
         pData + image1_offset,
         image1_size,
+        (M4Image::COLOR_FORMAT)colorFormat,
         width,
         height,
-        image1_stride,
-        (M4Image::COLOR_FORMAT)colorFormat
+        image1_stride
     );
 
     unsigned char* pixelRGB = *pOut;
@@ -151,10 +151,10 @@ zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colo
             pExtension2,
             pData + image2_offset,
             image2_size,
+            M4Image::COLOR_FORMAT::L8,
             width,
             height,
-            image2_stride,
-            M4Image::COLOR_FORMAT::L8
+            image2_stride
         );
 
         if (!pixelsAlpha) {
