@@ -93,9 +93,9 @@ zap_error_t internal_zap_validate_header(ZAPFILE_HEADER* pHeader, const char* &p
 
     zap_error_t err = internal_zap_get_extension(pHeader->image1_format, pExtension1);
 
-    if (err != ZAP_ERROR_NONE) {
+    if (err != ZAP_ERROR_NONE)
         return err;
-    }
+    
     return internal_zap_get_extension(pHeader->image2_format, pExtension2);
 }
 
@@ -129,9 +129,8 @@ zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colo
 
     zap_error_t err = internal_zap_validate_header(pHeader, pExtension1, pExtension2);
 
-    if (err != ZAP_ERROR_NONE) {
+    if (err != ZAP_ERROR_NONE)
         return err;
-    }
 
     int image1_offset = sizeof(ZAPFILE_HEADER);
     int image1_size = (int)pHeader->image1_size;
@@ -139,7 +138,8 @@ zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colo
     zap_int_t &width = *pRefWidth;
     zap_int_t &height = *pRefHeight;
 
-    if (!resize) {
+    if (!resize)
+    {
         width = (zap_int_t)pHeader->width;
         height = (zap_int_t)pHeader->height;
     }
@@ -148,9 +148,8 @@ zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colo
 
     err = internal_zap_acquire_image(pData + image1_offset, image1_size, pExtension1, width, height, image1_stride, (M4Image::COLOR_FORMAT)colorFormat, pRefImage);
 
-    if (err != ZAP_ERROR_NONE) {
+    if (err != ZAP_ERROR_NONE)
         return err;
-    }
 
     unsigned char* pixelRGB = *pRefImage;
 
@@ -165,7 +164,8 @@ zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colo
 
         err = internal_zap_acquire_image(pData + image2_offset, image2_size, pExtension2, width, height, image2_stride, M4Image::COLOR_FORMAT::L8, &pixelsAlpha);
 
-        if (err != ZAP_ERROR_NONE) {
+        if (err != ZAP_ERROR_NONE)
+        {
             M4Image::allocator.freeSafe(pixelRGB);
             return err;
         }
