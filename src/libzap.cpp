@@ -232,12 +232,12 @@ zap_error_t zap_set_allocator(zap_malloc_proc mallocProc, zap_free_proc freeProc
     return ZAP_ERROR_NONE;
 }
 
-zap_error_t zap_save(const char* filename, const zap_byte_t* pData, zap_size_t dataSize, zap_int_t width, zap_int_t height, zap_size_t stride, zap_uint_t colorFormat, zap_uint_t format)
+zap_error_t zap_save(const char* filename, const zap_byte_t* pData, zap_size_t dataSize, zap_int_t width, zap_int_t height, zap_size_t stride, zap_uint_t colorFormat, zap_uint_t format1, zap_uint_t format2)
 {
     return ZAP_ERROR_NOT_IMPLEMENTED;
 }
 
-zap_error_t zap_save_memory(zap_byte_t** pOut, zap_size_t* pOutSize, zap_int_t width, zap_int_t height, zap_size_t stride, zap_uint_t colorFormat, zap_uint_t format)
+zap_error_t zap_save_memory(zap_byte_t** pOut, zap_size_t* pOutSize, zap_int_t width, zap_int_t height, zap_size_t stride, zap_uint_t colorFormat, zap_uint_t format1, zap_uint_t format2)
 {
     return ZAP_ERROR_NOT_IMPLEMENTED;
 }
