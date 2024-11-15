@@ -121,7 +121,7 @@ zap_error_t internal_zap_load(const char* filename, zap_uint_t colorFormat, zap_
 
 zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colorFormat, zap_byte_t** pRefImage, zap_size_t* pOutSize, zap_int_t* pRefWidth, zap_int_t* pRefHeight, zap_size_t* pRefStride, bool resize)
 {
-    if (colorFormat < ZAP_COLOR_FORMAT_RGBA32 || colorFormat > ZAP_COLOR_FORMAT_BGRX32)
+    if (colorFormat < ZAP_COLOR_FORMAT_RGBA || colorFormat > ZAP_COLOR_FORMAT_BGRX)
         return ZAP_ERROR_INVALID_ARGUMENT;
 
     auto* pHeader = (ZAPFILE_HEADER*)pData;
@@ -163,7 +163,7 @@ zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colo
 
         unsigned char* pixelsAlpha = 0;
 
-        err = internal_zap_acquire_image(pData + image2_offset, image2_size, pExtension2, width, height, image2_stride, M4Image::COLOR_FORMAT::L8, &pixelsAlpha);
+        err = internal_zap_acquire_image(pData + image2_offset, image2_size, pExtension2, width, height, image2_stride, M4Image::COLOR_FORMAT::L, &pixelsAlpha);
 
         if (err != ZAP_ERROR_NONE)
         {
