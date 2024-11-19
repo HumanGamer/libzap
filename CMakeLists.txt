@@ -1,4 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
+
+add_subdirectory(vendor/M4Image)
 project(libzap)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -12,8 +14,7 @@ target_compile_definitions(libzap PRIVATE CRT_SECURE_NO_WARNINGS)
 target_sources(libzap
     PRIVATE
         src/libzap.cpp
-        vendor/stb_image.cpp
-        vendor/stb_image.h
     PUBLIC
         include/libzap.h
 )
+target_link_libraries(libzap M4Image)
