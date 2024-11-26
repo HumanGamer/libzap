@@ -1,0 +1,3 @@
+[submodule "vendor/M4Image"]
+	path = vendor/M4Image
+	url = https://github.com/tomysshadow/M4Image
