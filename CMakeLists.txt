@@ -17,4 +17,5 @@ target_sources(libzap
     PUBLIC
         include/libzap.h
 )
+
 target_link_libraries(libzap M4Image)

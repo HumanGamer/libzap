@@ -152,6 +152,8 @@ zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colo
     if (err != ZAP_ERROR_NONE)
         return err;
 
+    const zap_int_t BYTES = 4;
+
     unsigned char* pixelRGB = *pRefImage;
 
     // if colour format has alpha
@@ -161,9 +163,9 @@ zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colo
         int image2_size = (int)pHeader->image2_size;
         size_t image2_stride = 0;
 
-        unsigned char* pixelsAlpha = 0;
+        unsigned char* pixelsA = 0;
 
-        err = internal_zap_acquire_image(pData + image2_offset, image2_size, pExtension2, width, height, image2_stride, M4Image::COLOR_FORMAT::L, &pixelsAlpha);
+        err = internal_zap_acquire_image(pData + image2_offset, image2_size, pExtension2, width, height, image2_stride, M4Image::COLOR_FORMAT::L, &pixelsA);
 
         if (err != ZAP_ERROR_NONE)
         {
@@ -173,25 +175,28 @@ zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colo
 
         if (height)
         {
-            unsigned char* pixelAlpha = pixelsAlpha;
+            const zap_int_t CHANNEL_A = 3;
+            const zap_int_t DIVIDE_BY_FOUR = 2;
 
-            zap_int_t bytesPerRow = 4 * width;
+            unsigned char* pixelA = pixelsA;
+
+            zap_int_t bytesPerRow = width * BYTES;
             zap_int_t y = height;
 
             do
             {
-                for (zap_int_t i = 3; i < bytesPerRow; i += 4)
-                    pixelRGB[i] = pixelAlpha[i >> 2];
+                for (zap_int_t i = CHANNEL_A; i < bytesPerRow; i += BYTES)
+                    pixelRGB[i] = pixelA[i >> DIVIDE_BY_FOUR];
                 pixelRGB += image1_stride;
-                pixelAlpha += image2_stride;
+                pixelA += image2_stride;
                 --y;
             } while (y);
         }
 
-        M4Image::allocator.freeSafe(pixelsAlpha);
+        M4Image::allocator.freeSafe(pixelsA);
     }
 
-    *pOutSize = (size_t)width * (size_t)height * 4;
+    *pOutSize = (size_t)width * (size_t)height * (size_t)BYTES;
 
     return ZAP_ERROR_NONE;
 }
