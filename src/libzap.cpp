@@ -152,7 +152,7 @@ zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colo
     if (err != ZAP_ERROR_NONE)
         return err;
 
-    const zap_int_t BYTES = 4;
+    static const zap_int_t BYTES = 4;
 
     unsigned char* pixelRGB = *pRefImage;
 
@@ -175,8 +175,8 @@ zap_error_t internal_zap_load_memory(const unsigned char* pData, zap_uint_t colo
 
         if (height)
         {
-            const zap_int_t CHANNEL_A = 3;
-            const zap_int_t DIVIDE_BY_FOUR = 2;
+            static const zap_int_t CHANNEL_A = 3;
+            static const zap_int_t DIVIDE_BY_FOUR = 2;
 
             unsigned char* pixelA = pixelsA;
 
